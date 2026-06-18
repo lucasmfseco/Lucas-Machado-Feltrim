@@ -1,8 +1,8 @@
 #  Ola! Sou o Lucas-Machado-Feltrim
 
-- 🌱 Aspirante a Analista de Dados
-- 💬 Contate-me no email: lucasmfseco@icloud.com
-- 😄 Pronouns: ele/dele
+- Aspirante a Analista de Dados
+- Contate-me no email: lucasmfseco@icloud.com
+- Pronouns: ele/dele
 
   <div> 
   <a href="https://instagram.com/lucas_machado_m" target="_blank"><img src="https://img.shields.io/badge/-Instagram-%23E4405F?style=for-the-badge&logo=instagram&logoColor=white" target="_blank"></a>
