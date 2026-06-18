@@ -1,6 +1,6 @@
 #  Ola! Sou o Lucas-Machado-Feltrim
 
-- 🌱 Aspirante a Engenheiro de Software 
+- 🌱 Aspirante a Analista de Dados
 - 💬 Contate-me no email: lucasmfseco@icloud.com
 - 😄 Pronouns: ele/dele
 
