@@ -30,8 +30,8 @@ export function buildCar(def, cfg, opts = {}) {
   const lower = buildLowerBody(spec, S, { carbonHood: e.hood.indexOf('carbon') === 0 });
   const paint = paintMaterial(cfg, lower.panel);
   const roofMat = e.roof === 'carbon' ? m.carbon : e.roof === 'black' ? m.trim : paint;
-  const tint = { none: 0.42, mid: 0.72, dark: 0.92 }[e.tint] ?? 0.42;
-  const glass = new THREE.MeshPhysicalMaterial({ color: e.tint === 'none' ? 0x1c2a33 : 0x050608, metalness: 0.2, roughness: 0.02, transparent: true, opacity: tint, clearcoat: 1, envMapIntensity: 2, depthWrite: false });
+  const tint = { none: 0.74, mid: 0.87, dark: 0.96 }[e.tint] ?? 0.74;
+  const glass = new THREE.MeshPhysicalMaterial({ color: e.tint === 'none' ? 0x22303a : 0x07090b, metalness: 0.1, roughness: 0.03, transparent: true, opacity: tint, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 2.6, depthWrite: false });
   const headCol = { white: 0xfff4e2, yellow: 0xffd03a, ice: 0xc6e4ff }[e.lights] || 0xfff4e2;
   const headM = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: headCol, emissiveIntensity: 1.2, roughness: 0.2 });
   const tailM = new THREE.MeshPhysicalMaterial({ color: 0x8c0a10, emissive: 0xff1420, emissiveIntensity: 0.35, roughness: 0.12, transparent: true, opacity: 0.93, clearcoat: 1 });
@@ -79,7 +79,7 @@ export function buildCar(def, cfg, opts = {}) {
       if (!h) continue;
       const u = lampUnit({ shape: def2, inner: spec.head.inner }, 'head', headM);
       if (s < 0) u.children.forEach(c => { if (c.geometry.type === 'SphereGeometry' || c.geometry.type === 'TorusGeometry' || c.geometry.type === 'BoxGeometry') c.position.x *= -1; });
-      u.scale.set(1.22, 1.22, 1); stick(u, h, F, 1 - (spec.head.blend ?? 0.3), 0.004);
+      u.scale.set(1.25, 1.25, 1); stick(u, h, F, 0.65 * (1 - (spec.head.blend ?? 0.3)), -0.008);
     }
   }
   for (const t of spec.turn || []) for (const s of [1, -1]) {
@@ -134,7 +134,6 @@ export function buildCar(def, cfg, opts = {}) {
   const sz = S.zRf - 0.42, floor = S.bottomZ(sz) + 0.12, hand = spec.hand === 'L' ? 1 : -1;
   const seatMat = e.weight === 'race' ? m.seatRed : m.seat;
   for (const s of [1, -1]) { const st = seat(seatMat, e.weight !== 'stock'); st.position.set(s * 0.36, floor + 0.05, sz); body.add(st); }
-  if (!spec.cab.hatch || def.id === 'k86') { const rs = seat(m.seat, false); rs.scale.set(2.2, 0.9, 0.9); rs.position.set(0, floor + 0.05, sz - 0.85); if (e.weight !== 'race') body.add(rs); }
   const dashZ = S.zA - 0.2, dashY = S.deckZ(dashZ) - 0.04;
   const dash = new THREE.Mesh(new THREE.BoxGeometry(hwAt(dashZ) * 1.6, 0.14, 0.4), m.interior); dash.position.set(0, dashY, dashZ); body.add(dash);
   const sw = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.022, 10, 28), m.black); sw.position.set(hand * 0.36, dashY + 0.06, dashZ - 0.32); sw.rotation.x = -0.35; body.add(sw);
@@ -202,6 +201,26 @@ export function buildCar(def, cfg, opts = {}) {
     let n = V(t.z, 0, -t.x); if (n.dot(V(p.x, 0, p.z * 0.25)) < 0) n.negate();
     return { p, a: n, b: up || V(0, 1, 0) };
   });
+  // para-choques: faixa saliente na base da frente e da traseira
+  {
+    const bm = spec.bumper === 'black' ? m.black : paint;
+    const rearOutline = () => {
+      const pts = [];
+      for (let z = S.zR - S.Ra - 0.04; z >= -hl + 0.02 - 1e-6; z -= 0.03) pts.push(V(hwAt(z) * (1 - spec.tuck * 0.5), S.bottomZ(z), z));
+      const zE = -hl + 0.02, xe = hwAt(zE) * (1 - spec.tuck * 0.5), fr = [];
+      for (let i = 1; i < 12; i++) fr.push(V(xe * (1 - 2 * i / 12), S.bottomZ(zE), zE));
+      return pts.concat(fr, pts.map(p => V(-p.x, p.y, p.z)).reverse());
+    };
+    const prof = [[-0.04, 0.0], [0.006, 0.012], [0.016, 0.07], [0.014, 0.17], [0.0, 0.215], [-0.04, 0.215]];
+    add(sweep(frame(outline(S.zF + S.Ra + 0.04, hl - 0.02, 1)), prof, true), bm);
+    add(sweep(frame(rearOutline()), prof, true), bm);
+    if (spec.molding) for (const s of [1, -1]) {
+      const pts = []; for (let z = S.zR + S.Ra + 0.05; z <= S.zF - S.Ra - 0.05; z += 0.05) pts.push(V(s * (lower.surfX(z, spec.molding) + 0.004), spec.molding, z));
+      add(sweep(frame(pts), [[-0.01, -0.02], [0.012, -0.018], [0.014, 0.018], [-0.01, 0.02]], true), m.black, false);
+    }
+  }
+  // terceira luz de freio
+  { const z = S.zC - 0.06, br = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.035, 0.05), tailM); br.position.set(0, S.deckZ(z) + 0.03, z); body.add(br); }
   if (kit !== 'stock') {
     const ext = aero ? 0.07 : 0.035;
     const lip = sweep(frame(outline(S.zF + S.Ra + 0.04, hl - 0.02, 1)), [[-0.14, 0.03], [0.0, 0.025], [ext, -0.012], [ext - 0.01, -0.03], [-0.14, -0.025]], true);

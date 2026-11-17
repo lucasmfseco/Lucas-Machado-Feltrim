@@ -90,7 +90,7 @@ function panelTexture(spec, S, vOf) {
   // oclusão de ambiente falsa: parte de baixo e volta das caixas de roda mais escuras
   const lg = g.createLinearGradient(0, Y(0.1), 0, Y(0.36));
   lg.addColorStop(0, 'rgba(0,0,0,.5)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = lg; g.fillRect(0, 0, W, Y(0.36));
+  g.fillStyle = lg; g.fillRect(X(-S.hl + 0.14), 0, X(S.hl - 0.14) - X(-S.hl + 0.14), Y(0.36));
   for (const zc of [S.zF, S.zR]) {
     g.save(); g.translate(X(zc), Y(0.2)); g.scale(S.Ra / S.L * W, 0.2 * H);
     const rg = g.createRadialGradient(0, 0, 0.9, 0, 0, 1.45);

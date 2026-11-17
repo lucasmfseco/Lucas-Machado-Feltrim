@@ -67,14 +67,14 @@ export async function buildLot(ctx) {
   for (const [x, z] of [[-a.hx + 4, -a.hz + 4], [a.hx - 4, -a.hz + 4], [-a.hx + 4, a.hz - 4], [a.hx - 4, a.hz - 4], [0, -a.hz + 4], [0, a.hz - 4]]) {
     const ry = Math.atan2(-x, -z); tw.push({ x, z, ry });
     for (let k = -1; k <= 1; k++) gl.push(x + Math.cos(ry) * k * 2.2, 26.6, z - Math.sin(ry) * k * 2.2);
-    pools.push({ x: x * 0.6, y: 0.03, z: z * 0.55, sx: 70, sz: 70 });
+    pools.push({ x: x * 0.82, y: 0.03, z: z * 0.8, sx: 46, sz: 46 });
   }
   scene.add(instanced(tower, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, emissive: 0x1a1d26 }), tw, true));
   const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gl.concat(blink), 3));
   scene.add(new THREE.Points(gg, new THREE.PointsMaterial({ map: glowTexture(), size: 9, color: 0xeef2ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })));
   const pl = new THREE.PlaneGeometry(1, 1); pl.rotateX(-Math.PI / 2);
-  scene.add(instanced(pl, new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xcdd8ff, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending }), pools));
-  const fl = new THREE.SpotLight(0xdfe6ff, 2600, 260, 0.9, 0.6, 1.4); fl.position.set(0, 60, -40); fl.target.position.set(0, 0, 10); scene.add(fl); scene.add(fl.target);
+  scene.add(instanced(pl, new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xcdd8ff, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending }), pools));
+  const fl = new THREE.SpotLight(0xdfe6ff, 5200, 300, 1.0, 0.6, 1.3); fl.position.set(0, 60, -40); fl.target.position.set(0, 0, 10); scene.add(fl); scene.add(fl.target);
   // horizonte da cidade do outro lado da baía
   const ff = facadeTextures('office', 77, true); ff.map.repeat.set(4, 8); ff.emissive.repeat.set(4, 8);
   const sky = [];

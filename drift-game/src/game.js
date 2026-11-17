@@ -518,6 +518,12 @@ function updateCamera(dt) {
   const dist = 6.4 + c.speed * 0.035, hgt = 2.2;
   const tx = c.x - Math.sin(cam.ang) * dist, tz = c.z - Math.cos(cam.ang) * dist;
   cam.pos.x += (tx - cam.pos.x) * Math.min(1, dt * 9); cam.pos.z += (tz - cam.pos.z) * Math.min(1, dt * 9);
+  // mantém a câmera sobre a pista para o barranco não tapar o carro
+  const trk = world.track;
+  if (!trk.arena) {
+    const l = locate(trk, cam.pos.x, cam.pos.z, P.idx), lim = trk.limit - 0.4;
+    if (Math.abs(l.lat) > lim) { const ex = (Math.abs(l.lat) - lim) * Math.sign(l.lat); cam.pos.x -= l.p.nx * ex; cam.pos.z -= l.p.nz * ex; }
+  }
   let ty = c.y + hgt;
   if (world.heightAt) ty = Math.max(ty, world.heightAt(cam.pos.x, cam.pos.z) + 1.2);
   cam.pos.y += (ty - cam.pos.y) * Math.min(1, dt * 6);

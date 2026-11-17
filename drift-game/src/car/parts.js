@@ -61,7 +61,7 @@ export function mats() {
     honey: new THREE.MeshStandardMaterial({ color: 0xffffff, map: honey, roughness: 0.7, metalness: 0.3 }),
     rotor: new THREE.MeshStandardMaterial({ map: rotor, metalness: 0.9, roughness: 0.42 }),
     reflector: new THREE.MeshStandardMaterial({ color: 0xcfd3d8, metalness: 1, roughness: 0.18 }),
-    lens: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.22, clearcoat: 1, envMapIntensity: 2.2, depthWrite: false }),
+    lens: new THREE.MeshPhysicalMaterial({ color: 0xeef4ff, roughness: 0.02, metalness: 0, transparent: true, opacity: 0.38, clearcoat: 1, envMapIntensity: 3, depthWrite: false }),
     amber: new THREE.MeshPhysicalMaterial({ color: 0xff8a10, emissive: 0xff6a00, emissiveIntensity: 0.25, roughness: 0.1, transparent: true, opacity: 0.85, clearcoat: 1 }),
     clearLamp: new THREE.MeshPhysicalMaterial({ color: 0xf2f2f2, roughness: 0.05, transparent: true, opacity: 0.6, clearcoat: 1, envMapIntensity: 2 }),
     plate: new THREE.MeshStandardMaterial({ map: plate, roughness: 0.5, metalness: 0.2 }),
