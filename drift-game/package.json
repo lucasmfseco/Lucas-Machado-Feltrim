@@ -1,0 +1,14 @@
+{
+  "name": "kaze-drift",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --format=iife --target=es2020 --outfile=js/game.bundle.js",
+    "dev": "esbuild src/main.js --bundle --sourcemap --format=iife --target=es2020 --outfile=js/game.bundle.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.20.2",
+    "three": "0.160.0"
+  },
+  "type": "module"
+}
