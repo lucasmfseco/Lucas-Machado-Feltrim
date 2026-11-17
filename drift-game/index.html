@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--PAGE-->
+<title>Kaze Drift</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: o canvas 3D ocupa a tela; painéis translúcidos flutuam nas bordas, como instrumentos de painel. */
+:root {
+  --bg: #07080c; --panel: rgba(12, 14, 21, .84); --panel-solid: #10131c; --line: rgba(255, 255, 255, .11);
+  --fg: #eef0f4; --dim: #9aa1b0; --accent: #ff8a1f; --accent-ink: #1a0e02; --cyan: #00e5ff; --good: #7cff3a; --bad: #ff3b4e;
+  --display: "Chakra Petch", "Trebuchet MS", sans-serif; --body: "Barlow", "Segoe UI", system-ui, sans-serif; --num: "Barlow Condensed", "Arial Narrow", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.4 var(--body); overflow: hidden; -webkit-user-select: none; user-select: none; }
+#app { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+.screen { position: absolute; inset: 0; pointer-events: none; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.screen > * { pointer-events: auto; }
+.panel { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(10px); }
+.label { font: 600 11px var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.btn { font: 600 15px var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 13px 22px; background: var(--accent); color: var(--accent-ink); clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .12s, transform .12s; }
+.btn:hover { filter: brightness(1.15); transform: translateX(2px); }
+.btn.ghost { background: rgba(255, 255, 255, .09); color: var(--fg); }
+.btn.off { background: rgba(255, 255, 255, .07); color: var(--dim); cursor: default; }
+.btn.off:hover { filter: none; transform: none; }
+.back { font: 600 13px var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 10px 16px; background: var(--panel); border: 1px solid var(--line); }
+.back:hover { border-color: var(--accent); color: var(--accent); }
+.coin { display: inline-flex; align-items: center; gap: 7px; font: 700 20px var(--num); letter-spacing: .03em; }
+.coin::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9a8, #f2b800 55%, #a86f00); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .4); flex: none; }
+#wallet { position: absolute; top: 24px; right: max(16px, env(safe-area-inset-right, 0px)); padding: 9px 16px; z-index: 5; }
+
+/* menu */
+#menu { display: flex; flex-direction: column; justify-content: center; gap: 28px; padding-left: max(6vw, 16px); background: linear-gradient(90deg, rgba(7, 8, 12, .9) 0, rgba(7, 8, 12, .55) 32%, rgba(7, 8, 12, 0) 60%); }
+.brand h1 { font-size: clamp(44px, 8vw, 104px); line-height: .88; font-weight: 700; letter-spacing: -.01em; font-style: italic; }
+.brand h1 span { display: block; color: transparent; -webkit-text-stroke: 1.5px var(--accent); }
+.brand p { margin: 14px 0 0; color: var(--dim); max-width: 34ch; }
+#menu nav { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+#menu nav .btn { min-width: 250px; text-align: left; font-size: 17px; }
+#menuCar { font: 500 13px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+#menuCar b { color: var(--fg); font-weight: 600; }
+
+/* garagem e concessionária */
+.topbar { position: absolute; top: 24px; left: max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 12px; align-items: center; }
+.topbar h2 { font-size: 22px; font-style: italic; }
+.side { position: absolute; top: 84px; bottom: 24px; width: min(250px, 30vw); overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.side.left { left: max(16px, env(safe-area-inset-left, 0px)); }
+.side.right { right: max(16px, env(safe-area-inset-right, 0px)); width: min(340px, 38vw); gap: 8px; }
+.side .label { margin: 10px 4px 4px; }
+.cat { text-align: left; padding: 9px 12px; font: 500 14px var(--display); letter-spacing: .04em; border-left: 3px solid transparent; }
+.cat:hover { background: rgba(255, 255, 255, .06); }
+.cat.on { background: rgba(255, 138, 31, .14); border-left-color: var(--accent); color: var(--accent); }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+.opt:hover { border-color: rgba(255, 255, 255, .3); }
+.opt.sel { border-color: var(--accent); background: rgba(255, 138, 31, .1); }
+.opt b { font: 600 14px var(--display); letter-spacing: .03em; }
+.opt small { grid-column: 1 / -1; color: var(--dim); font-size: 12.5px; line-height: 1.3; }
+.opt .tag { font: 600 13px var(--num); letter-spacing: .05em; color: var(--dim); white-space: nowrap; }
+.opt .tag.eq { color: var(--good); } .opt .tag.own { color: var(--cyan); } .opt .tag.price { color: #f2c200; }
+.swatches { display: flex; flex-wrap: wrap; gap: 7px; padding: 2px 4px 6px; }
+.sw { width: 30px; height: 30px; border: 2px solid rgba(255, 255, 255, .18); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.sw.on { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.sw:hover { border-color: #fff; }
+input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var(--line); background: none; cursor: pointer; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 4px 6px; }
+.chip { padding: 6px 11px; font: 500 12.5px var(--display); border: 1px solid var(--line); letter-spacing: .04em; }
+.chip.on { border-color: var(--accent); color: var(--accent); background: rgba(255, 138, 31, .1); }
+#buyBar { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; gap: 16px; align-items: center; padding: 12px 16px; max-width: min(560px, calc(100vw - 32px)); }
+#buyBar .info { min-width: 0; }
+#buyBar .info b { font: 600 15px var(--display); display: block; }
+#buyBar .info span { color: var(--dim); font-size: 12.5px; }
+.free { color: var(--good); font: 600 12px var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 0 4px; }
+.carCard { text-align: left; padding: 11px 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.carCard:hover { border-color: rgba(255, 255, 255, .3); }
+.carCard.sel { border-color: var(--accent); background: rgba(255, 138, 31, .1); }
+.carCard b { font: 600 15px var(--display); font-style: italic; }
+.carCard small { grid-column: 1 / -1; color: var(--dim); font-size: 12px; }
+.stat { display: grid; grid-template-columns: 86px 1fr; gap: 10px; align-items: center; font: 500 12px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.stat i { display: block; height: 7px; background: rgba(255, 255, 255, .1); position: relative; }
+.stat i::after { content: ""; position: absolute; inset: 0; width: var(--v); background: linear-gradient(90deg, var(--accent), #ffd27a); }
+#dealInfo { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+#dealInfo h3 { font-size: 26px; font-style: italic; }
+#dealInfo p { margin: 0; color: var(--dim); font-size: 13.5px; }
+
+/* mapas */
+#maps { overflow-y: auto; pointer-events: auto; background: rgba(7, 8, 12, .86); padding-top: 84px; }
+#mapGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; max-width: 1240px; margin: 0 auto; }
+.mapCard { padding: 0; text-align: left; border: 1px solid var(--line); background: var(--panel-solid); display: flex; flex-direction: column; transition: transform .14s, border-color .14s; }
+.mapCard:hover { transform: translateY(-3px); border-color: var(--accent); }
+.mapCard canvas { width: 100%; aspect-ratio: 16 / 9; display: block; }
+.mapCard div { padding: 11px 13px 13px; }
+.mapCard b { font: 600 17px var(--display); font-style: italic; display: block; }
+.mapCard small { color: var(--dim); font-size: 13px; }
+
+/* ajustes e pausa */
+.modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4, 5, 8, .72); pointer-events: auto; padding: 16px; }
+.modal .box { width: min(430px, 100%); padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.modal h2 { font-size: 30px; font-style: italic; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.row input[type=range] { flex: 1; accent-color: var(--accent); }
+select { font: inherit; color: var(--fg); background: var(--panel-solid); border: 1px solid var(--line); padding: 7px 10px; }
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; font: 500 14px var(--display); }
+.sum span { color: var(--dim); } .sum b { font: 700 18px var(--num); text-align: right; }
+
+/* carregamento */
+#loading { background: radial-gradient(120% 90% at 50% 110%, #2a1608 0, #0a0b10 55%, #07080c 100%); display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; padding-bottom: 8vh; pointer-events: auto; }
+#loading::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, transparent 0 38px, rgba(255, 138, 31, .045) 38px 40px); animation: slide 1.6s linear infinite; }
+@keyframes slide { to { background-position: 88px 0; } }
+#loading > * { position: relative; max-width: 900px; width: 100%; margin: 0 auto; }
+#loadName { font-size: clamp(34px, 6vw, 72px); font-style: italic; line-height: .95; }
+#loadSub { color: var(--dim); margin-block: 0; }
+.loadRow { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+#loadPct { font: 700 clamp(48px, 8vw, 96px)/.8 var(--num); color: var(--accent); font-variant-numeric: tabular-nums; }
+#loadStep { font: 500 13px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+#loadBar { height: 8px; background: rgba(255, 255, 255, .1); transform: skewX(-24deg); overflow: hidden; }
+#loadBar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffd27a); box-shadow: 0 0 18px var(--accent); }
+#loadTip { color: var(--dim); font-size: 14px; margin-block: 0; }
+#loadTip b { color: var(--fg); font-weight: 600; }
+
+/* HUD */
+#hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--display); }
+#hud > * { position: absolute; }
+#hudLeft { top: 20px; left: max(16px, env(safe-area-inset-left, 0px)); padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; }
+#score { font: 700 30px/1 var(--num); font-variant-numeric: tabular-nums; }
+#hudTop { top: 22px; left: 50%; transform: translateX(-50%); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0; transition: opacity .2s; }
+#hudTop.on { opacity: 1; }
+#pot { font: 700 clamp(46px, 7vw, 84px)/.85 var(--num); font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(0, 0, 0, .7), 0 2px 0 rgba(0, 0, 0, .5); font-style: italic; }
+#multRow { display: flex; align-items: center; gap: 10px; }
+#mult { font: 700 28px/1 var(--num); color: var(--bg); background: var(--cyan); padding: 3px 12px 4px; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+#mult.bump { animation: bump .35s; }
+@keyframes bump { 30% { transform: scale(1.5); } }
+#multBar { width: 150px; height: 6px; background: rgba(255, 255, 255, .18); transform: skewX(-24deg); }
+#multBar i { display: block; height: 100%; width: 0; background: var(--cyan); }
+#tag { font: 600 14px var(--display); letter-spacing: .18em; text-transform: uppercase; color: #ffd27a; text-shadow: 0 1px 6px #000; min-height: 20px; }
+#grace { width: 220px; height: 3px; background: rgba(255, 255, 255, .15); opacity: 0; }
+#grace i { display: block; height: 100%; background: var(--bad); width: 100%; }
+#pop { top: 34%; left: 50%; transform: translate(-50%, 0); font: 700 40px var(--num); font-style: italic; text-align: center; opacity: 0; text-shadow: 0 2px 14px #000; white-space: nowrap; }
+#pop small { display: block; font: 600 16px var(--display); letter-spacing: .1em; }
+#pop.show { animation: pop 1.7s ease-out; }
+#pop.bad { color: var(--bad); }
+@keyframes pop { 0% { opacity: 0; transform: translate(-50%, 20px) scale(.7); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -46px) scale(1); } }
+#hudRight { top: 20px; right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+#mini { width: 168px; height: 168px; display: block; }
+#btnPause { pointer-events: auto; }
+#gauge { right: max(10px, env(safe-area-inset-right, 0px)); bottom: 12px; width: 270px; height: 270px; }
+#keys { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 20px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 5px; }
+#keys span { display: grid; place-items: center; font: 600 16px var(--display); background: var(--panel); border: 1px solid var(--line); }
+#keys span.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+#keys span[data-k=w] { grid-column: 2; grid-row: 1; }
+#keys span[data-k=a] { grid-column: 1; grid-row: 2; }
+#keys span[data-k=s] { grid-column: 2; grid-row: 2; }
+#keys span[data-k=d] { grid-column: 3; grid-row: 2; }
+#keyHint { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 124px; padding: 9px 13px; font: 400 13px var(--body); color: var(--dim); max-width: 250px; transition: opacity .6s; }
+#keyHint b { color: var(--fg); }
+#toast { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); padding: 10px 18px; font: 600 14px var(--display); letter-spacing: .04em; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 20; }
+#toast.on { opacity: 1; }
+#fatal { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: var(--bg); z-index: 50; }
+@media (max-width: 760px) {
+  .side.left { width: 128px; } .side.right { width: 46vw; } #gauge { width: 190px; height: 190px; } #mini { width: 110px; height: 110px; }
+  #buyBar { flex-direction: column; align-items: stretch; gap: 8px; } #keyHint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #loading::before { animation: none; } .btn, .mapCard { transition: none; } }
+</style>
+<!--/HEAD-->
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <div id="wallet" class="panel"><span class="coin" id="coins">0</span></div>
+
+  <section id="menu" class="screen">
+    <div class="brand">
+      <h1>KAZE<span>DRIFT</span></h1>
+      <p>Drift livre em oito pistas. Segure a derrapagem, suba o multiplicador e gaste as moedas na garagem.</p>
+    </div>
+    <nav>
+      <button class="btn" id="btnPlay">Ir para a pista</button>
+      <button class="btn ghost" id="btnGarage">Garagem</button>
+      <button class="btn ghost" id="btnDealer">Concessionária</button>
+      <button class="btn ghost" id="btnSettings">Ajustes</button>
+    </nav>
+    <div id="menuCar"></div>
+  </section>
+
+  <section id="garage" class="screen" hidden>
+    <div class="topbar"><button class="back" id="garBack">← Voltar</button><h2 id="garTitle">Garagem</h2></div>
+    <div class="side left panel" id="catList"></div>
+    <div class="side right panel" id="optList"></div>
+    <div id="buyBar" class="panel" hidden><div class="info"><b id="buyName"></b><span id="buyDesc"></span></div><button class="btn" id="buyBtn"></button></div>
+  </section>
+
+  <section id="dealer" class="screen" hidden>
+    <div class="topbar"><button class="back" id="dealBack">← Voltar</button><h2>Concessionária</h2></div>
+    <div class="side left panel" id="carList" style="width:min(290px,36vw)"></div>
+    <div class="side right panel" id="dealInfo" style="bottom:auto"></div>
+  </section>
+
+  <section id="maps" class="screen" hidden>
+    <div class="topbar"><button class="back" id="mapBack">← Voltar</button><h2>Escolha a pista</h2></div>
+    <div id="mapGrid"></div>
+  </section>
+
+  <section id="settings" class="modal" hidden>
+    <div class="box panel">
+      <h2>Ajustes</h2>
+      <label class="row"><span>Volume</span><input type="range" id="setVol" min="0" max="1" step="0.05"></label>
+      <label class="row"><span>Qualidade gráfica</span><select id="setQ"><option value="high">Alta</option><option value="med">Média</option><option value="low">Baixa</option></select></label>
+      <div class="row"><span style="color:var(--dim);font-size:13px">Apaga carros, peças e moedas.</span><button class="back" id="setReset">Zerar progresso</button></div>
+      <button class="btn" id="setClose">Fechar</button>
+    </div>
+  </section>
+
+  <section id="loading" class="screen" hidden>
+    <span class="label">Carregando pista</span>
+    <h2 id="loadName"></h2>
+    <p id="loadSub"></p>
+    <div class="loadRow"><span id="loadStep"></span><span id="loadPct">0%</span></div>
+    <div id="loadBar"><i></i></div>
+    <p id="loadTip"></p>
+  </section>
+
+  <div id="hud" hidden>
+    <div id="hudLeft" class="panel"><span class="label">Pontos na sessão</span><span id="score">0</span><span class="coin" id="hcoins" style="font-size:17px">0</span></div>
+    <div id="hudTop">
+      <span id="tag"></span>
+      <span id="pot">0</span>
+      <div id="multRow"><span id="mult">x1</span><div id="multBar"><i></i></div></div>
+      <div id="grace"><i></i></div>
+    </div>
+    <div id="pop"></div>
+    <div id="hudRight"><canvas id="mini" class="panel" width="336" height="336"></canvas><button class="back" id="btnPause">Pausar · Esc</button></div>
+    <canvas id="gauge" width="540" height="540"></canvas>
+    <div id="keyHint" class="panel"><b>W</b> acelera · <b>S</b> freia e dá ré · <b>A</b>/<b>D</b> viram. Vire forte acelerando para derrapar. Um toque no <b>S</b> na entrada da curva solta a traseira.</div>
+    <div id="keys"><span data-k="w">W</span><span data-k="a">A</span><span data-k="s">S</span><span data-k="d">D</span></div>
+  </div>
+
+  <section id="pause" class="modal" hidden>
+    <div class="box panel">
+      <h2>Pausado</h2>
+      <div class="sum"><span>Pontos na sessão</span><b id="pScore">0</b><span>Moedas ganhas</span><b id="pCoins">0</b><span>Melhor combo</span><b id="pBest">0</b><span>Maior multiplicador</span><b id="pMult">x1</b></div>
+      <button class="btn" id="pResume">Continuar</button>
+      <button class="btn ghost" id="pReset">Voltar o carro para a pista</button>
+      <button class="btn ghost" id="pMaps">Trocar de pista</button>
+      <button class="btn ghost" id="pGarage">Ir para a garagem</button>
+    </div>
+  </section>
+
+  <div id="toast" class="panel"></div>
+</div>
+<script src="js/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/carmodel.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/game.js"></script>
+<!--/PAGE-->
+</body>
+</html>
